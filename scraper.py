@@ -1,3 +1,4 @@
+import pandas as pd
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -21,6 +22,42 @@ def get_videos(driver):
   return videos
 
 
+def parse_video(video):
+
+  # title, url, thumbnail, channel,views, uploaded, description
+
+  title_tag = video.find_element(By.ID, 'video-title')
+  title = title_tag.text
+
+  url = title_tag.get_attribute('href')
+
+  thumbnail_tag = video.find_element(By.TAG_NAME, 'img')
+  thumbnail_url = thumbnail_tag.get_attribute('src')
+
+  channel_tag = video.find_element(By.CLASS_NAME, 'ytd-channel-name')
+  channel = channel_tag.text
+
+  view_tags = video.find_element(By.XPATH, '//*[@id="metadata-line"]/span[1]')
+  view = view_tags.text
+
+  uploaded_tag = video.find_element(By.XPATH,
+                                    '//*[@id="metadata-line"]/span[2]')
+  uploaded = uploaded_tag.text
+
+  desc_tag = video.find_element(By.ID, 'description-text')
+  desc = desc_tag.text
+
+  return {
+    'title': title,
+    'url': url,
+    'thumbnail_url': thumbnail_url,
+    'channel': channel,
+    'description': desc,
+    'view': view,
+    'uploaded': uploaded
+  }
+
+
 if __name__ == "__main__":
   print('Creating driver')
   driver = get_driver()
@@ -30,27 +67,11 @@ if __name__ == "__main__":
 
   print(f"found {len(videos)} videos")
 
-  # title, url, thumbnail, channel,views, uploaded, description
-  video = videos[0]
+  print("Parsing top 10 trending videos")
+  videos_data = [parse_video(video) for video in videos[:10]]
 
-  title_tag = video.find_element(By.ID, 'video-title')
-  title = title_tag.text
-  print('Title : ', title)
+  print("Save the data to CSV file")
+  videos_df = pd.DataFrame(videos_data)
+  print(videos_df)
 
-  url = title_tag.get_attribute('href')
-  print('URL : ', url)
-
-  thumbnail_tag = video.find_element(By.TAG_NAME, 'img')
-  thumbnail_url = thumbnail_tag.get_attribute('src')
-  print('Thumbnail URL : ', thumbnail_url)
-
-  channel_tag = video.find_element(By.CLASS_NAME, 'ytd-channel-name')
-  channel = channel_tag.text
-  print('Channel Name : ', channel)
-
-  view_tag = video.find_element(
-    By.XPATH,
-    './/span[@class = "inline-metadata-item style-scope ytd-video-meta-block"]'
-  )
-  view = view_tag.text
-  print(view)
+  videos_df.to_csv('trending.csv', index=None)
